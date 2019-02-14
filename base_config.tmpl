@@ -1,0 +1,10 @@
+!
+hostname {{ .Hostname }}
+!
+interface Loopback0
+   ip address {{ .LoopbackIPAddress | ConvertIpCidrToIpNetmask }}
+!
+router bgp 600
+    neighbor 1.1.1.1
+!
+Serial is: {{ .Serial }}

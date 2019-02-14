@@ -1,0 +1,10 @@
+!
+hostname ROUTER-1
+!
+interface Loopback0
+   ip address 192.0.2.1 255.255.255.128
+!
+router bgp 600
+    neighbor 1.1.1.1
+!
+Serial is: 2ZNTEF29104F

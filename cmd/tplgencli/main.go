@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"time"
+
 	"github.com/theillego/tplgen"
 	"log"
 	"net/http"
@@ -13,6 +17,15 @@ import (
 
 type TestStruct struct {
 	Hello          string `json:"hello"`
+}
+
+// For control over HTTP client headers,
+// redirect policy, and other settings,
+// create a Client
+// A Client is an HTTP client
+
+var client = &http.Client{
+	Timeout: time.Second * 10, // always configure timeout
 }
 
 func main() {
@@ -51,7 +64,7 @@ func main() {
 
 	//fmt.Println(tplgen.RemoveCidr("192.168.1.1/24"))
 
-	url := fmt.Sprintf("https://www.mocky.io/v2/5185415ba171ea3a00704eed")
+	url := "https://www.mocky.io/v2/5185415ba171ea3a00704eed"
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	// Build the request
@@ -60,12 +73,6 @@ func main() {
 		log.Fatal("NewRequest: ", err)
 		return
 	}
-
-	// For control over HTTP client headers,
-	// redirect policy, and other settings,
-	// create a Client
-	// A Client is an HTTP client
-	client := &http.Client{}
 
 	// Send the request via a client
 	// Do sends an HTTP request and
@@ -81,6 +88,29 @@ func main() {
 	// Defer the closing of the body
 	defer resp.Body.Close()
 
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Do: ", err)
+		return
+	}
+
+	//fmt.Println(resp.Body)
+	//fmt.Println(record.Hello)
+
+	// getting json data without a struct
+	var data map[string]interface{}
+	err = json.Unmarshal([]byte(body), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	//fmt.Println(data["hello"])
+
+	// pretty print json string
+	var prettyJSON bytes.Buffer
+	err = json.Indent(&prettyJSON, body, "", "\t")
+	fmt.Println(string(prettyJSON.Bytes()))
+
 	// Fill the record with the data from the JSON
 	var record TestStruct
 
@@ -88,10 +118,18 @@ func main() {
 	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
 		log.Println(err)
 	}
-
-	fmt.Println(record.Hello)
-	//fmt.Println(resp)
-	//fmt.Println(json.MarshalIndent(resp, "", "    "))
 }
+
+
+
+//func getJson(url, target interface{}) error {
+//	r, err := client.Get(url)
+//	if err != nil {
+//		return err
+//	}
+//	defer r.Body.Close()
+//
+//	return json.NewDecoder(r.Body).Decode(target)
+//}
 
 

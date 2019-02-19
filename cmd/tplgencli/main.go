@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"time"
-
+	"github.com/theillego/apihelpers"
+	"github.com/theillego/netfuncs"
 	"github.com/theillego/tplgen"
 	"log"
 	"net/http"
 	"os"
 	"text/template"
+	"time"
 )
 
 type TestStruct struct {
@@ -30,6 +28,9 @@ var client = &http.Client{
 
 func main() {
 
+	// disable secure cert
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 	router1 := tplgen.Router{
 		"ROUTER-1",
 		"2ZNTEF29104F",
@@ -44,9 +45,9 @@ func main() {
 	}
 
 	// pass functions to be used in template
-	functionMap := template.FuncMap {
-		"RemoveCidr": tplgen.RemoveCidr,
-		"ConvertIpCidrToIpNetmask": tplgen.ConvertIpCidrToIpNetmask,
+	functionMap := template.FuncMap{
+		"RemoveCidr":               tplgen.RemoveCidr,
+		"ConvertIpCidrToIpNetmask": netfuncs.ConvertIpCidrToIpNetmask,
 	}
 
 	// parse template and create new config file
@@ -62,63 +63,42 @@ func main() {
 		panic(err)
 	}
 
-	//fmt.Println(tplgen.RemoveCidr("192.168.1.1/24"))
+	url := "http://www.mocky.io/v2/5c6b1064330000a5387f4e89"
 
-	url := "https://www.mocky.io/v2/5185415ba171ea3a00704eed"
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	reqBody := []byte(``)
+	caw, _, _ := apihelpers.GetJson(url, reqBody)
+	//fmt.Println(caw)
 
-	// Build the request
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatal("NewRequest: ", err)
-		return
+	for _, v := range caw {
+		//fmt.Printf("%s %s\n", k, v)
+
+		switch v := v.(type) {
+		default:
+			fmt.Printf("unexpected type %T", v)
+		case uint64:
+			fmt.Println("unit64")
+		case string:
+			fmt.Println("string")
+		case float64, float32:
+			fmt.Printf("%f\n", v) // don't print scientifically
+		case bool:
+			fmt.Println("bool")
+		}
+
+
 	}
 
-	// Send the request via a client
-	// Do sends an HTTP request and
-	// returns an HTTP response
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Do: ", err)
-		return
-	}
+	baw := caw["a_number"].(float64) // type assertion here to convert interface{} to float64
+	baw = baw + 900000000000
+	fmt.Println(baw)
 
-	// Callers should close resp.Body
-	// when done reading from it
-	// Defer the closing of the body
-	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal("Do: ", err)
-		return
-	}
+	//pp, _ := PrettyPrintJson(respBody)
+	//fmt.Print(pp)
 
-	//fmt.Println(resp.Body)
-	//fmt.Println(record.Hello)
 
-	// getting json data without a struct
-	var data map[string]interface{}
-	err = json.Unmarshal([]byte(body), &data)
-	if err != nil {
-		panic(err)
-	}
-
-	//fmt.Println(data["hello"])
-
-	// pretty print json string
-	var prettyJSON bytes.Buffer
-	err = json.Indent(&prettyJSON, body, "", "\t")
-	fmt.Println(string(prettyJSON.Bytes()))
-
-	// Fill the record with the data from the JSON
-	var record TestStruct
-
-	// Use json.Decode for reading streams of JSON data
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
-		log.Println(err)
-	}
 }
+
 
 
 
